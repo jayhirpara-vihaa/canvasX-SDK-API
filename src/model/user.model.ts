@@ -35,7 +35,7 @@ const AppUser = dbContext.define('app_users', {
     type: STRING,
   },
   domains: {
-    type: ARRAY(STRING),
+    type: STRING,
   },
 });
 

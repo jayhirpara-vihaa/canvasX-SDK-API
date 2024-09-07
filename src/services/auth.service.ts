@@ -7,11 +7,14 @@ import {
   resSuccess,
 } from '../utils/shared-functions';
 import AppUser from '../model/user.model';
-import { DATA_ALREADY_EXITE, ERROR_NOT_FOUND, API_KEY_ERROR_MESSAGE } from '../utils/app-messages';
+import {
+  DATA_ALREADY_EXITE,
+  ERROR_NOT_FOUND,
+  API_KEY_ERROR_MESSAGE,
+  DUPLICATE_VALUE_ERROR_MESSAGE,
+} from '../utils/app-messages';
 import { ActiveStatus } from '../utils/app-enumeration';
-import { Sequelize } from 'sequelize';
 const crypto = require('crypto');
-const os = require('os');
 
 export const registerUser = async (req: Request) => {
   try {
@@ -53,12 +56,10 @@ export const registerUser = async (req: Request) => {
 export const authorizeKey = async (req: Request) => {
   try {
     const { sdk_key } = req.body;
-
     const origin = req.get('origin');
-
     const user = await AppUser.findOne({
       where: {
-        sdk_key: sdk_key,
+        sdk_key,
       },
     });
 
@@ -68,24 +69,17 @@ export const authorizeKey = async (req: Request) => {
       });
     }
 
+    const domains = user.dataValues.domains || '';
+
+    if (!domains.split(',').includes(origin)) {
+      return resNotFound({
+        message: prepareMessageFromParams(ERROR_NOT_FOUND, [['field_name', 'Domain']]),
+      });
+    }
+
     if (user.dataValues.status === ActiveStatus.Inactive) {
       return resBadRequest({ message: API_KEY_ERROR_MESSAGE });
     }
-
-    await AppUser.update(
-      {
-        domains: user.dataValues.domains
-          ? user.dataValues.domains.includes(origin)
-            ? user.dataValues.domains
-            : Sequelize.fn('array_append', Sequelize.col('domains'), origin)
-          : [origin], // If no domains exist, start a new array with `origin`
-      },
-      {
-        where: {
-          id: user.dataValues.id,
-        },
-      }
-    );
 
     return resSuccess();
   } catch (error) {
@@ -139,6 +133,47 @@ export const statusUpdate = async (req: Request) => {
       default:
         break;
     }
+
+    return resSuccess();
+  } catch (error) {
+    throw error;
+  }
+};
+export const addDomain = async (req: Request) => {
+  try {
+    const { domain } = req.body;
+    const { company_code } = req.params;
+    const user = await AppUser.findOne({
+      where: {
+        company_code: company_code,
+      },
+    });
+
+    if (!user) {
+      return resNotFound({
+        message: prepareMessageFromParams(ERROR_NOT_FOUND, [['field_name', 'User']]),
+      });
+    }
+
+    const domains = user.dataValues.domains || '';
+    if (domains && domains.split(',').includes(domain)) {
+      return resBadRequest({
+        message: prepareMessageFromParams(DUPLICATE_VALUE_ERROR_MESSAGE, [
+          ['field_name', 'Domain'],
+        ]),
+      });
+    }
+
+    await AppUser.update(
+      {
+        domains: domains.length > 0 ? domains + ',' + domain : domain,
+      },
+      {
+        where: {
+          id: user.dataValues.id,
+        },
+      }
+    );
 
     return resSuccess();
   } catch (error) {
