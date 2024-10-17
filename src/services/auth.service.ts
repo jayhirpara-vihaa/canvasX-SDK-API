@@ -57,6 +57,7 @@ export const authorizeKey = async (req: Request) => {
   try {
     const { sdk_key } = req.body;
     const origin = req.get('origin');
+    console.log(origin)
     const user = await AppUser.findOne({
       where: {
         sdk_key,
