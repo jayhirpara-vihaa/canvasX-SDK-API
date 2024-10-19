@@ -1,5 +1,5 @@
 import { RequestHandler } from 'express';
-import { addDomain, authorizeKey, registerUser, statusUpdate } from '../services/auth.service';
+import { addDomain, authorizeKey, registerUser, statusUpdate, test } from '../services/auth.service';
 import { callServiceMethod } from './base.controller';
 
 export const registerFn: RequestHandler = (req, res) => {
@@ -17,3 +17,7 @@ export const statusUpdateFn: RequestHandler = (req, res) => {
 export const addDomainFn: RequestHandler = (req, res) => {
   callServiceMethod(req, res, addDomain(req), 'addDomainFn');
 };
+
+export const testFn: RequestHandler = (req, res) => {
+  callServiceMethod(req, res, test(req), "testFn")
+}

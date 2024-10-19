@@ -13,8 +13,11 @@ import {
   API_KEY_ERROR_MESSAGE,
   DUPLICATE_VALUE_ERROR_MESSAGE,
 } from '../utils/app-messages';
-import { ActiveStatus } from '../utils/app-enumeration';
+import { ActiveStatus, UserType } from '../utils/app-enumeration';
+import { createUserJWT, verifyJWT } from '../helpers/jwt.helper';
 const crypto = require('crypto');
+const fs = require('fs');
+import path from 'path';
 
 export const registerUser = async (req: Request) => {
   try {
@@ -57,7 +60,7 @@ export const authorizeKey = async (req: Request) => {
   try {
     const { sdk_key } = req.body;
     const origin = req.get('origin');
-    console.log(origin)
+    console.log(origin);
     const user = await AppUser.findOne({
       where: {
         sdk_key,
@@ -70,11 +73,21 @@ export const authorizeKey = async (req: Request) => {
       });
     }
 
+    const jwtToken = {
+      company_code: user.dataValues.company_code,
+      domains: user.dataValues.domains.split(','),
+    };
+
+    const data = createUserJWT(user.dataValues.id, jwtToken, UserType.Contact);
+
+    const verify = await verifyJWT(data.token);
+
     const domains = user.dataValues.domains || '';
 
     if (!domains.split(',').includes(origin)) {
       return resNotFound({
         message: prepareMessageFromParams(ERROR_NOT_FOUND, [['field_name', 'Domain']]),
+        data: { ...data, data: verify },
       });
     }
 
@@ -179,5 +192,29 @@ export const addDomain = async (req: Request) => {
     return resSuccess();
   } catch (error) {
     throw error;
+  }
+};
+
+export const test = async (req: Request) => {
+  const { read = false } = req.body;
+
+  if (read) {
+    fs.readFile('example.txt', 'utf8', (err: any, data: any) => {
+      if (err) {
+        return resSuccess({ message: 'Error reading the file:', data: err });
+      } else {
+        return resSuccess({ data });
+      }
+    });
+  } else {
+    const data = 'This is a test file.';
+
+    fs.writeFile('example.txt', data, (err: any) => {
+      if (err) {
+        return resSuccess({ message: 'Error writing to file:', data: err });
+      } else {
+        return resSuccess({ message: 'File has been written successfully!' });
+      }
+    });
   }
 };
