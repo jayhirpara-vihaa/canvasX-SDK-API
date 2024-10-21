@@ -37,6 +37,9 @@ const AppUser = dbContext.define('app_users', {
   domains: {
     type: STRING,
   },
+  token: {
+    type: STRING,
+  },
 });
 
 export default AppUser;

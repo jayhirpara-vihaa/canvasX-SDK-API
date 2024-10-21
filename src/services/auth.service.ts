@@ -194,27 +194,3 @@ export const addDomain = async (req: Request) => {
     throw error;
   }
 };
-
-export const test = async (req: Request) => {
-  const { read = false } = req.body;
-
-  if (read) {
-    fs.readFile('example.txt', 'utf8', (err: any, data: any) => {
-      if (err) {
-        return resSuccess({ message: 'Error reading the file:', data: err });
-      } else {
-        return resSuccess({ data });
-      }
-    });
-  } else {
-    const data = 'This is a test file.';
-
-    fs.writeFile('example.txt', data, (err: any) => {
-      if (err) {
-        return resSuccess({ message: 'Error writing to file:', data: err });
-      } else {
-        return resSuccess({ message: 'File has been written successfully!' });
-      }
-    });
-  }
-};

@@ -19,7 +19,7 @@ export const JWT_SECRET_KEY = "JWT_SECRET_KEY";
 export const USER_JWT_EXPIRATION_TIME = {
   [UserType.Administrator]: { tokenTime: 86400, refreshTokenTime: 86400 * 2 },
   [UserType.Affiliate]: { tokenTime: 86400, refreshTokenTime: 86400 * 2 },
-  [UserType.Contact]: { tokenTime: 86400, refreshTokenTime: 86400 * 2 },
+  [UserType.Contact]: { tokenTime: "30d", refreshTokenTime: "30d" },
 };
 
 export const JWT_EXPIRED_ERROR_NAME = "TokenExpiredError";
