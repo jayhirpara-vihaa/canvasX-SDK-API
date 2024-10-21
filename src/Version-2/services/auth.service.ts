@@ -5,23 +5,37 @@ import {
   resBadRequest,
   resNotFound,
   resSuccess,
-} from '../utils/shared-functions';
+} from '../../utils/shared-functions';
 import AppUser from '../model/user.model';
 import {
   DATA_ALREADY_EXITE,
   ERROR_NOT_FOUND,
   API_KEY_ERROR_MESSAGE,
   DUPLICATE_VALUE_ERROR_MESSAGE,
-} from '../utils/app-messages';
-import { ActiveStatus } from '../utils/app-enumeration';
-
+} from '../../utils/app-messages';
+import { ActiveStatus, UserType } from '../../utils/app-enumeration';
+import { createUserJWT, verifyJWT } from '../../helpers/jwt.helper';
 const crypto = require('crypto');
+
+const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_';
+
+function generateKey(length: number) {
+  let key = '';
+  const charsetLength = charset.length;
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = crypto.randomBytes(1)[0] % charsetLength;
+    key += charset[randomIndex];
+  }
+
+  return key;
+}
 
 export const registerUser = async (req: Request) => {
   try {
     const { name, email, phone_number, country, company_code } = req.body;
-
-    const sdk_key = crypto.randomBytes(20).toString('hex');
+    const publicKey = generateKey(80);
+    const privateKey = generateKey(80);
 
     const user = await AppUser.findOne({
       where: {
@@ -42,27 +56,29 @@ export const registerUser = async (req: Request) => {
       phone_number,
       country,
       company_code,
-      sdk_key,
+      sdk_key: '',
       created_date: getLocalDate(),
       status: ActiveStatus.Active,
+      client_id: publicKey,
+      secret_key: privateKey,
     });
 
     return resSuccess({ data: newUser });
   } catch (error) {
-    console.log(error);
     throw error;
   }
 };
 
 export const authorizeKey = async (req: Request) => {
   try {
-    const { sdk_key } = req.body;
+    const { client_id, secret_key } = req.body;
 
     const origin = req.get('origin');
 
     const user = await AppUser.findOne({
       where: {
-        sdk_key,
+        client_id,
+        secret_key,
       },
     });
 
@@ -71,7 +87,6 @@ export const authorizeKey = async (req: Request) => {
         message: prepareMessageFromParams(ERROR_NOT_FOUND, [['field_name', 'User']]),
       });
     }
-
     const domains = user.dataValues.domains || '';
 
     if (!domains.split(',').includes(origin)) {
@@ -83,6 +98,26 @@ export const authorizeKey = async (req: Request) => {
     if (user.dataValues.status === ActiveStatus.Inactive) {
       return resBadRequest({ message: API_KEY_ERROR_MESSAGE });
     }
+
+    const jwtPayload = {
+      id: user.dataValues.id,
+      client_id: user.dataValues.client_id,
+      secret_key: user.dataValues.secret_key,
+      company_code: user.dataValues.company_code,
+    };
+
+    const data = await createUserJWT(user.dataValues.id, jwtPayload, UserType.Contact);
+
+    await AppUser.update(
+      {
+        token: data.token,
+      },
+      {
+        where: {
+          id: user.dataValues.id,
+        },
+      }
+    );
 
     return resSuccess();
   } catch (error) {
@@ -182,4 +217,14 @@ export const addDomain = async (req: Request) => {
   } catch (error) {
     throw error;
   }
+};
+
+export const verifyToken = async (req: Request) => {
+  try {
+    const { token } = req.body;
+
+    const verify = await verifyJWT(token);
+
+    return resSuccess({ data: verify });
+  } catch (error) {}
 };

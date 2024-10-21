@@ -2,25 +2,21 @@ import {
   JWT_EXPIRED_ERROR_NAME,
   JWT_SECRET_KEY,
   USER_JWT_EXPIRATION_TIME,
-} from "../utils/app-constants";
-import jwt from "jsonwebtoken";
-import { resSuccess, resUnauthorizedAccess } from "../utils/shared-functions";
-import { ICreateUserJWT } from "../data/types/jwt/jwt.type";
-import { TUserType } from "../data/types/common/common.type";
+} from '../utils/app-constants';
+import jwt from 'jsonwebtoken';
+import { resSuccess, resUnauthorizedAccess } from '../utils/shared-functions';
+import { ICreateUserJWT } from '../data/types/jwt/jwt.type';
+import { TUserType } from '../data/types/common/common.type';
 
-export const createUserJWT: ICreateUserJWT = (
-  id,
-  data,
-  userType: TUserType
-) => {
+export const createUserJWT: ICreateUserJWT = (id, data, userType: TUserType) => {
   const jwtExpiredTime = USER_JWT_EXPIRATION_TIME[userType];
   const token = jwt.sign(data, JWT_SECRET_KEY, {
     expiresIn: jwtExpiredTime.tokenTime,
   });
-  const refreshToken = jwt.sign(data, JWT_SECRET_KEY, {
-    expiresIn: jwtExpiredTime.refreshTokenTime,
-  });
-  return { token, refreshToken };
+  // const refreshToken = jwt.sign(data, JWT_SECRET_KEY, {
+  //   expiresIn: jwtExpiredTime.refreshTokenTime,
+  // });
+  return { token };
 };
 
 export const verifyJWT = async (token: string) => {

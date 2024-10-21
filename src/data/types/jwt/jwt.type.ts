@@ -6,5 +6,5 @@ export type ICreateUserJWT = (
   userType: TUserType
 ) => {
   token: string;
-  refreshToken: string;
+  // refreshToken: string;
 };
