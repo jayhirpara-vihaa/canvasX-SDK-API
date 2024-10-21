@@ -108,6 +108,10 @@ export const authorizeKey = async (req: Request) => {
 
     const data = await createUserJWT(user.dataValues.id, jwtPayload, UserType.Contact);
 
+    const verify = await verifyJWT(data.token);
+    const exp = verify.data.exp;
+    const expirationDate = new Date(exp * 1000);
+
     await AppUser.update(
       {
         token: data.token,
@@ -119,7 +123,12 @@ export const authorizeKey = async (req: Request) => {
       }
     );
 
-    return resSuccess();
+    return resSuccess({
+      data: {
+        token: data.token,
+        expirationDate: expirationDate,
+      },
+    });
   } catch (error) {
     throw error;
   }
