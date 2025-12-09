@@ -89,7 +89,7 @@ export const authorizeKey = async (req: Request) => {
     }
     const domains = user.dataValues.domains || '';
 
-    if (!domains.split(',').includes(origin)) {
+    if (!domains.split(',')?.map((domain: any) => domain.trim()).includes(origin?.trim())) {
       return resNotFound({
         message: prepareMessageFromParams(ERROR_NOT_FOUND, [['field_name', 'Domain']]),
       });
